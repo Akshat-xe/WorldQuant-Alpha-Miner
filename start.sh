@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Quantum Alpha Portal - Launch Script
+# ==============================================================================
+
+set -e
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$DIR"
+
+PORT="${PORT:-8080}"
+HOST="${HOST:-127.0.0.1}"
+
+# Detect or auto-create Python virtualenv
+if [ ! -d "$DIR/venv" ] && [ ! -d "$DIR/.venv" ]; then
+    echo "[*] No virtualenv found. Bootstrapping isolated 'venv'..."
+    python3 -m venv "$DIR/venv"
+    source "$DIR/venv/bin/activate"
+    echo "[*] Installing dependencies from requirements.txt..."
+    pip install --upgrade pip
+    pip install -r "$DIR/requirements.txt"
+elif [ -d "$DIR/venv" ]; then
+    source "$DIR/venv/bin/activate"
+elif [ -d "$DIR/.venv" ]; then
+    source "$DIR/.venv/bin/activate"
+fi
+
+echo "=========================================================="
+echo "⚡ Starting Quantum Alpha Portal"
+echo "🌐 URL: http://$HOST:$PORT"
+echo "📂 Directory: $DIR"
+echo "=========================================================="
+
+python3 -m uvicorn server:app --host "$HOST" --port "$PORT" --reload

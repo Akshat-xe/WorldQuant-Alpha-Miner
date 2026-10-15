@@ -1,0 +1,53 @@
+# ==============================================================================
+# Git Ignore - Quantum Alpha Studio / WorldQuant BRAIN Pipeline
+# ==============================================================================
+
+# Credentials & Sensitive Secrets (NEVER COMMIT)
+.env
+*.env
+*.pem
+*.key
+*.secret
+
+# Proprietary Alpha Batches & Private Research Formulas
+candidates*.json
+your_candidates.json
+!examples/
+!examples/*
+*.jsonl
+
+# Local SQLite Databases & Volatile Audit Trails
+*.db
+*.sqlite
+*.sqlite3
+alphas_audit.db
+
+# Python Bytecode, Caches & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+venv/
+.venv/
+env/
+ENV/
+
+# System Metadata & Logs
+*.log
+.system_generated/
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+# IDE Configuration
+.idea/
+.vscode/
+*.swp
+*.swo
