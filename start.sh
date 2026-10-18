@@ -31,4 +31,9 @@ echo "🌐 URL: http://$HOST:$PORT"
 echo "📂 Directory: $DIR"
 echo "=========================================================="
 
-python3 -m uvicorn server:app --host "$HOST" --port "$PORT" --reload
+if [ "$DEV_MODE" = "1" ]; then
+    echo "[*] Dev mode active: watching 'web' directory only (excluding DB)..."
+    python3 -m uvicorn web.server:app --host "$HOST" --port "$PORT" --reload --reload-dir "$DIR/web" --reload-exclude "*.db*"
+else
+    python3 -m uvicorn web.server:app --host "$HOST" --port "$PORT"
+fi

@@ -21,7 +21,7 @@ class AlphaFactory:
             # 1. Multi-Layer Quality & Idiosyncratic Risk Dampened Momentum
             {
                 "name": "Multi-Layer Quality & Idiosyncratic Risk Filtered Reversal",
-                "expr": "group_neutralize(rank(fscore_quality) * rank(fscore_profitability) / (1 + rank(unsystematic_risk_last_60_days)), subindustry) * rank(-ts_delta(close, 5))",
+                "expr": "group_neutralize((rank(fscore_quality) * rank(fscore_profitability) / (1 + rank(unsystematic_risk_last_60_days))) * rank(-ts_delta(close, 5)), subindustry)",
                 "decay": 10,
                 "delay": 1,
                 "universe": "TOP3000",
@@ -32,7 +32,7 @@ class AlphaFactory:
             # 2. Pentagon Surface Acceleration & Trend Divergence
             {
                 "name": "Pentagon Style Surface Acceleration & Momentum",
-                "expr": "group_neutralize(rank(fscore_surface_accel) * rank(fscore_momentum), subindustry) * rank(-ts_delta(close, 4))",
+                "expr": "group_neutralize(rank(fscore_surface_accel) * rank(fscore_momentum) * rank(-ts_delta(close, 4)), subindustry)",
                 "decay": 8,
                 "delay": 1,
                 "universe": "TOP3000",
@@ -43,7 +43,7 @@ class AlphaFactory:
             # 3. Analyst EPS Consensus Revision with Quality Synergy
             {
                 "name": "Analyst EPS Revision Momentum & Quality Interaction",
-                "expr": "group_neutralize(rank(ts_delta(anl4_afv4_eps_mean, 60)) * rank(fscore_quality), subindustry) * rank(-ts_delta(close, 4))",
+                "expr": "group_neutralize(rank(ts_delta(anl4_afv4_eps_mean, 60)) * rank(fscore_quality) * rank(-ts_delta(close, 4)), subindustry)",
                 "decay": 8,
                 "delay": 1,
                 "universe": "TOP3000",
@@ -54,7 +54,7 @@ class AlphaFactory:
             # 4. Volatility Risk Premium (Implied vs Historical Volatility Spread)
             {
                 "name": "Volatility Risk Premium Spread & Reversal",
-                "expr": "group_neutralize(rank((implied_volatility_call_30 - historical_volatility_30) / (historical_volatility_30 + 0.001)), subindustry) * rank(-ts_delta(close, 5))",
+                "expr": "group_neutralize(rank((implied_volatility_call_30 - historical_volatility_30) / (historical_volatility_30 + 0.001)) * rank(-ts_delta(close, 5)), subindustry)",
                 "decay": 10,
                 "delay": 1,
                 "universe": "TOP3000",
@@ -65,7 +65,7 @@ class AlphaFactory:
             # 5. Long-Short Analyst Revisions Net Ratio with Volume Confirmation
             {
                 "name": "Net Upward Analyst Revision Ratio with Short-Term Liquidity Rebound",
-                "expr": "group_neutralize(rank((anl4_ady_pu - anl4_ady_down) / (anl4_ady_pu + anl4_ady_down + 1)), subindustry) * rank(-ts_delta(close, 3))",
+                "expr": "group_neutralize(rank((anl4_ady_pu - anl4_ady_down) / (anl4_ady_pu + anl4_ady_down + 1)) * rank(-ts_delta(close, 3)), subindustry)",
                 "decay": 8,
                 "delay": 1,
                 "universe": "TOP3000",
@@ -76,7 +76,7 @@ class AlphaFactory:
             # 6. Microstructure Normalized Gap Flow & Intraday Pressure
             {
                 "name": "Microstructure Normalized Overnight Gap & Range Rebound",
-                "expr": "group_neutralize(rank((open - ts_delay(close, 1)) / (high - low + 0.0001)) - rank((close - open) / (high - low + 0.0001)), subindustry) * rank(-ts_delta(close, 3))",
+                "expr": "group_neutralize((rank((open - ts_delay(close, 1)) / (high - low + 0.0001)) - rank((close - open) / (high - low + 0.0001))) * rank(-ts_delta(close, 3)), subindustry)",
                 "decay": 12,
                 "delay": 1,
                 "universe": "TOP3000",
@@ -87,7 +87,7 @@ class AlphaFactory:
             # 7. Multi-Horizon Analyst EPS Revision Acceleration
             {
                 "name": "Analyst EPS Revision Acceleration Multi-Horizon",
-                "expr": "group_neutralize(rank(ts_delta(anl4_afv4_eps_mean, 30) - ts_delay(ts_delta(anl4_afv4_eps_mean, 30), 30)), subindustry) * rank(-ts_delta(close, 5))",
+                "expr": "group_neutralize(rank(ts_delta(anl4_afv4_eps_mean, 30) - ts_delay(ts_delta(anl4_afv4_eps_mean, 30), 30)) * rank(-ts_delta(close, 5)), subindustry)",
                 "decay": 10,
                 "delay": 1,
                 "universe": "TOP3000",
@@ -98,7 +98,7 @@ class AlphaFactory:
             # 8. Competitor Network Centrality & Fundamental Profitability
             {
                 "name": "Network PageRank Centrality & Profitability Momentum",
-                "expr": "group_neutralize(rank(pv13_com_page_rank) * rank(fscore_profitability), subindustry) * rank(-ts_delta(close, 5))",
+                "expr": "group_neutralize(rank(pv13_com_page_rank) * rank(fscore_profitability) * rank(-ts_delta(close, 5)), subindustry)",
                 "decay": 10,
                 "delay": 1,
                 "universe": "TOP3000",

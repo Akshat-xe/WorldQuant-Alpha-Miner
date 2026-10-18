@@ -135,7 +135,7 @@ def main():
         client = None
         evaluator = None
 
-    if args.portfolio-status if hasattr(args, "portfolio-status") else args.portfolio_status:
+    if args.portfolio_status:
         if not client:
             print("[!] BRAIN credentials missing in .env. Configure .env first.")
             sys.exit(1)

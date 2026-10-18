@@ -2,6 +2,7 @@ import os
 import time
 import random
 import logging
+import threading
 import requests
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
@@ -27,23 +28,27 @@ class BrainClient:
         if not self.email or not self.password:
             raise ValueError("WorldQuant BRAIN credentials missing. Provide BRAIN_EMAIL and BRAIN_PASSWORD in .env or pass directly to BrainClient.")
             
+        self._lock = threading.Lock()
         self.session = requests.Session()
         self.authenticate()
 
     def authenticate(self) -> None:
         """Authenticates with the WorldQuant BRAIN API."""
-        url = f"{self.config.api_base}/authentication"
-        resp = self.session.post(url, auth=(self.email, self.password))
-        if resp.status_code not in (200, 201):
-            raise RuntimeError(f"Authentication failed ({resp.status_code}): {resp.text}")
-        logger.info("[✓] Successfully authenticated with WorldQuant BRAIN API.")
+        with self._lock:
+            url = f"{self.config.api_base}/authentication"
+            resp = self.session.post(url, auth=(self.email, self.password), timeout=30)
+            if resp.status_code not in (200, 201):
+                raise RuntimeError(f"Authentication failed ({resp.status_code}): {resp.text}")
+            logger.info("[✓] Successfully authenticated with WorldQuant BRAIN API.")
 
     def _request_with_retry(self, method: str, url: str, **kwargs) -> requests.Response:
         """Executes HTTP request with retry on 429 (rate-limit) and auto-reauth on 401."""
         max_retries = 8
+        kwargs.setdefault('timeout', 30)
         for attempt in range(max_retries):
             try:
-                resp = self.session.request(method, url, **kwargs)
+                with self._lock:
+                    resp = self.session.request(method, url, **kwargs)
                 if resp.status_code == 401:
                     logger.warning("[!] Session expired (401). Re-authenticating...")
                     self.authenticate()
@@ -58,7 +63,8 @@ class BrainClient:
                 logger.warning(f"[!] Request error ({e}). Retrying {attempt + 1}/{max_retries}...")
                 time.sleep(min(30.0, 2 ** attempt + random.uniform(0.5, 1.5)))
         try:
-            return self.session.request(method, url, **kwargs)
+            with self._lock:
+                return self.session.request(method, url, **kwargs)
         except Exception as e:
             logger.error(f"[!] Request failed after retries: {e}")
             resp = requests.Response()

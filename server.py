@@ -25,5 +25,16 @@ if __name__ == "__main__":
 
     port = int(os.environ.get("PORT", 8080))
     host = os.environ.get("HOST", "127.0.0.1")
-    print(f"⚡ Starting Quantum Alpha Portal on http://{host}:{port}")
-    uvicorn.run("web.server:app", host=host, port=port, reload=True)
+    dev_mode = os.environ.get("DEV_MODE", "0") == "1"
+    if dev_mode:
+        uvicorn.run(
+            "web.server:app",
+            host=host,
+            port=port,
+            reload=True,
+            reload_dirs=[os.path.join(BASE_DIR, "web")],
+            reload_excludes=["*.db*", "*.sqlite*"]
+        )
+    else:
+        uvicorn.run("web.server:app", host=host, port=port, reload=False)
+

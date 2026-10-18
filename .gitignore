@@ -18,9 +18,11 @@ your_candidates.json
 
 # Local SQLite Databases & Volatile Audit Trails
 *.db
+*.db*
 *.sqlite
-*.sqlite3
+*.sqlite*
 alphas_audit.db
+
 
 # Python Bytecode, Caches & Virtual Environments
 __pycache__/
