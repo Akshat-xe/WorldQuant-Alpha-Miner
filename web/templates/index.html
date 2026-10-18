@@ -170,7 +170,7 @@
                             <span class="radar-stat-label">
                                 <span class="status-dot" style="width: 5px; height: 5px;"></span> ACTIVE BRAIN
                             </span>
-                            <span class="radar-stat-val" id="radar-active-count">17 Active</span>
+                            <span class="radar-stat-val" id="radar-active-count">-- Active</span>
                         </div>
                         <div class="radar-stat-row">
                             <span class="radar-stat-label">
@@ -182,7 +182,7 @@
                             <span class="radar-stat-label">
                                 <span style="color: var(--accent-cyan); font-weight: bold;">&#8856;</span> SUBMITTABLE
                             </span>
-                            <span class="radar-stat-val" id="radar-submittable-count">64 Ready</span>
+                            <span class="radar-stat-val" id="radar-submittable-count">-- Ready</span>
                         </div>
                     </div>
                 </div>
@@ -195,7 +195,7 @@
                     <div class="flow-row" onclick="switchTab('dashboard')" style="cursor: pointer;">
                         <div>
                             <div class="flow-name">Apex Sharpe Frontier</div>
-                            <div class="flow-val" id="overview-apex-sharpe">2.61 SR</div>
+                            <div class="flow-val" id="overview-apex-sharpe">-- SR</div>
                         </div>
                         <canvas class="sparkline-canvas"></canvas>
                         <span class="flow-arrow">&rarr;</span>
@@ -485,12 +485,12 @@
                             <div>
                                 <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem;">Strategy Template Preset</label>
                                 <select id="studio-template-select" class="search-input" style="padding-left: 0.85rem; font-size: 0.825rem;">
-                                    <option value="Spectacular Capital Efficiency Power 2.8">Spectacular Capital Efficiency Power 2.8 (Fitness 2.61)</option>
-                                    <option value="Excellent Operational Cashflow Power 2.2">Excellent Cashflow &amp; EBITDA Power 2.2 (Fitness 2.08)</option>
-                                    <option value="Delay 0 Earnings PEAD Neutralized Held">Delay 0 - Earnings PEAD Neutralized (nws18_bee)</option>
-                                    <option value="Delay 0 Share Buyback Authorization Flow">Delay 0 - Share Buyback Authorization Flow</option>
-                                    <option value="Orthogonal Alternative Data Network">Orthogonal Alt-Data Network &amp; Sentiment</option>
-                                    <option value="Revenue Growth & Gross Margin Expansion">Revenue Growth &amp; Margin Expansion</option>
+                                    <option value="Dual-Horizon Trend & Mean Reversion">Dual-Horizon Trend & Mean Reversion (Sharpe ~1.45)</option>
+                                    <option value="Volume Flow Imbalance & Intraday Pressure">Volume Flow Imbalance & Intraday Pressure</option>
+                                    <option value="High-Low Range Multi-Scale Mean Reversion">High-Low Range Multi-Scale Mean Reversion</option>
+                                    <option value="Multi-Scale Volatility Compression">Multi-Scale Volatility Compression & Breakout</option>
+                                    <option value="Operating Cash Flow Yield & VWAP Reversion">Operating Cash Flow Yield & VWAP Reversion</option>
+                                    <option value="Delay 0 Earnings PEAD Neutralized">Delay 0 - Earnings PEAD Neutralized (nws18_bee)</option>
                                 </select>
                             </div>
                             <div>
@@ -521,18 +521,14 @@
                                 </div>
                             </div>
 
-                            <textarea id="studio-code" class="studio-code-textarea" spellcheck="false">oi_mom = rank(ts_delta(ts_backfill(operating_income, 120), 120) / cap);
-own_hist = rank(ts_rank(ts_backfill(ebitda, 120) / (ts_backfill(enterprise_value, 120) + 1), 250));
-eps_mom = rank(ts_delta(ts_backfill(anl4_afv4_eps_mean, 60), 60));
-cf_yield = rank(ts_backfill(cashflow_op, 120) / cap);
-asset_turn = rank(ts_backfill(sales, 120) / (ts_backfill(assets, 120) + 1));
-fund = power(rank(0.25 * oi_mom + 0.15 * own_hist + 0.20 * eps_mom + 0.15 * cf_yield + 0.25 * asset_turn), 2.8);
-rev = power(0.70 * rank(-(close - ts_mean(vwap, 2)) / ts_mean(vwap, 2)) + 0.30 * rank(-returns), 2.8);
-group_neutralize(fund * rev, subindustry)</textarea>
+                            <textarea id="studio-code" class="studio-code-textarea" spellcheck="false"># Educational Template: Dual-Horizon Trend & Mean Reversion
+fast_trend = rank(ts_mean(close, 5) - ts_mean(close, 20));
+reversal = rank(-returns);
+group_neutralize(0.60 * fast_trend + 0.40 * reversal, subindustry)</textarea>
 
                             <div class="studio-editor-footer">
                                 <span>Tip: Click any field in <a href="javascript:void(0)" onclick="switchTab('datalib')" style="color: var(--accent-cyan); text-decoration: underline;">Data Library</a> to inject into formula</span>
-                                <span id="studio-code-length">8 lines • 543 chars</span>
+                                <span id="studio-code-length">4 lines • 228 chars</span>
                             </div>
                         </div>
 
@@ -569,7 +565,7 @@ group_neutralize(fund * rev, subindustry)</textarea>
                                 </div>
                                 <div class="param-input-col">
                                     <label>Decay</label>
-                                    <input id="studio-decay" type="number" value="22" min="1" max="50">
+                                    <input id="studio-decay" type="number" value="14" min="1" max="50">
                                 </div>
                                 <div class="param-input-col">
                                     <label>Neutralization</label>
@@ -583,10 +579,14 @@ group_neutralize(fund * rev, subindustry)</textarea>
                         </div>
 
                         <!-- Submit Action Bar -->
-                        <div class="studio-actions-bar">
-                            <button id="btn-dispatch-sim" type="submit" class="btn-primary-action" style="flex: 1; padding: 0.8rem 1.5rem; font-size: 0.875rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                                Run Simulation &amp; Platform Audit
+                        <div class="studio-actions-bar" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                            <button id="btn-dispatch-sim" type="submit" class="btn-primary-action" style="flex: 1; min-width: 200px; padding: 0.8rem 1.25rem; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                Run Single Simulation
+                            </button>
+                            <button id="btn-studio-evolve" type="button" class="btn-primary-action" style="flex: 1.25; min-width: 240px; padding: 0.8rem 1.25rem; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; background: linear-gradient(135deg, #0284c7 0%, #4f46e5 50%, #7c3aed 100%); border: 1px solid rgba(255, 255, 255, 0.25); box-shadow: 0 4px 16px rgba(79, 70, 229, 0.35);">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                                ⚡ Auto-Evolve to Submittable (Sim 1 ➔ Sim X)
                             </button>
                         </div>
                     </form>
@@ -636,7 +636,7 @@ group_neutralize(fund * rev, subindustry)</textarea>
                             </span>
                             <span id="studio-status-pill" style="font-size: 0.725rem; color: var(--accent-emerald); background: rgba(16, 185, 129, 0.12); padding: 0.15rem 0.5rem; border-radius: 999px;">● Ready</span>
                         </div>
-                        <pre id="studio-terminal" class="studio-terminal-box">[*] Engine ready. Click "Run Simulation & Platform Audit" to dispatch expression to WorldQuant BRAIN.</pre>
+                        <pre id="studio-terminal" class="studio-terminal-box">[*] Engine ready. Click "Run Single Simulation" or "⚡ Auto-Evolve to Submittable" to begin.</pre>
 
                         <!-- Today's Simulation Activity Mini Drawer -->
                         <div class="studio-today-runs">
@@ -649,6 +649,39 @@ group_neutralize(fund * rev, subindustry)</textarea>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- ===================================================================== -->
+            <!-- CLOSED-LOOP EVOLUTION STEPPER (Sim 1 ➔ Sim X)                         -->
+            <!-- ===================================================================== -->
+            <div id="studio-evolution-container" class="glass-card" style="margin-top: 1.25rem; padding: 1.25rem; display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.85rem;">
+                    <div style="display: flex; align-items: center; gap: 0.65rem;">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(99, 102, 241, 0.2); display: flex; align-items: center; justify-content: center; color: var(--accent-cyan);">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.6rem;">
+                                Closed-Loop Evolution Feedback Stepper
+                                <span id="evo-session-badge" style="font-size: 0.725rem; font-family: var(--font-mono); color: var(--accent-cyan); background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); padding: 0.15rem 0.5rem; border-radius: 4px;">#EVO-ID</span>
+                            </h3>
+                            <p style="font-size: 0.775rem; color: var(--text-secondary); margin: 0.15rem 0 0 0;">Autonomous mutation and platform hurdle feedback progression from Simulation 1 to Submittable.</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span id="evo-status-badge" style="font-size: 0.75rem; padding: 0.3rem 0.75rem; border-radius: 999px; font-weight: 600; background: rgba(56, 189, 248, 0.15); color: #38bdf8; display: inline-flex; align-items: center; gap: 0.35rem;">
+                            ● Initializing...
+                        </span>
+                        <button id="btn-stop-evolution" type="button" class="btn-sync" style="font-size: 0.75rem; padding: 0.35rem 0.85rem; border-color: rgba(244, 63, 94, 0.4); color: #f43f5e; background: rgba(244, 63, 94, 0.1); cursor: pointer;">
+                            Stop Evolution
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stepper Track / Cards Flow -->
+                <div id="evo-steps-track" class="evolution-timeline-track">
+                    <!-- Dynamic Iteration Cards rendered here by JS -->
                 </div>
             </div>
         </main>

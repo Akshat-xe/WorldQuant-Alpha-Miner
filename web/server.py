@@ -4,7 +4,8 @@ import json
 import sqlite3
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date, timedelta
+from contextlib import contextmanager
 import threading
 from typing import Dict, Any, List, Optional
 
@@ -30,6 +31,8 @@ from pipeline.database import AlphaDatabase
 from pipeline.engine_algorithmic import AlgorithmicEngine
 from pipeline.engine_ai import CloudAIEngine
 from pipeline.correlation_worker import BackgroundCorrelationWorker
+from pipeline.closed_loop_optimizer import ClosedLoopStudioOptimizer
+
 
 app = FastAPI(title="Quantum Alpha Studio - WorldQuant BRAIN", version="2.5.0")
 
@@ -67,15 +70,25 @@ def is_system_idle() -> bool:
             return False
     return True
 
+# Ensure database and table schema exist on startup
+DB_INSTANCE = AlphaDatabase(DB_PATH)
 CORRELATION_WORKER = BackgroundCorrelationWorker(db_path=DB_PATH, is_idle_func=is_system_idle)
 
 # User sessions cache
 USER_SESSIONS: Dict[str, Dict[str, Any]] = {}
 
+@contextmanager
 def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        conn.execute("PRAGMA journal_mode = WAL;")
+        conn.execute("PRAGMA busy_timeout = 30000;")
+        conn.execute("PRAGMA synchronous = NORMAL;")
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 def compute_tier(fitness: Optional[float], sharpe: Optional[float]) -> str:
     if fitness is not None and fitness >= 2.50:
@@ -220,14 +233,18 @@ async def auth_login(req: LoginRequest):
             "synced_on_studio": False
         }
 
-        # Priming initial sync directly so alphas are ready when redirected to /studio
-        try:
-            db = AlphaDatabase(DB_PATH)
-            client.sync_user_alphas(db, max_unsubmitted=150)
-            USER_SESSIONS[session_token]["synced_on_studio"] = True
-            CORRELATION_WORKER.start(client)
-        except Exception as sync_err:
-            print(f"[!] Initial sync warning: {sync_err}")
+        # Dispatch initial sync in background so login response is instantaneous and does not time out
+        def _bg_initial_sync():
+            try:
+                db = AlphaDatabase(DB_PATH)
+                client.sync_user_alphas(db, max_unsubmitted=100)
+                if session_token in USER_SESSIONS:
+                    USER_SESSIONS[session_token]["synced_on_studio"] = True
+                CORRELATION_WORKER.start(client)
+            except Exception as sync_err:
+                print(f"[!] Initial sync warning: {sync_err}")
+
+        threading.Thread(target=_bg_initial_sync, daemon=True, name="InitialSyncThread").start()
 
         res = JSONResponse(content={
             "success": True,
@@ -236,9 +253,6 @@ async def auth_login(req: LoginRequest):
         })
         res.set_cookie(key="session_id", value=session_token, httponly=True, samesite="lax")
         return res
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
@@ -268,53 +282,105 @@ async def get_dashboard_summary(request: Request):
     user_info = sess.get("user", {})
 
     try:
-        # 1. Active submissions count
-        r_alphas = client._request_with_retry(
-            "GET",
-            f"{client.config.api_base}/users/self/alphas",
-            params={"status": "ACTIVE", "limit": 100, "order": "-dateSubmitted"}
-        )
-        active_alphas = r_alphas.json().get("results", []) if r_alphas.status_code == 200 else []
-        active_count = len(active_alphas)
+        # 1. Refresh live user profile from BRAIN API
+        try:
+            p_resp = client._request_with_retry("GET", f"{client.config.api_base}/users/self")
+            if p_resp.status_code == 200:
+                profile = p_resp.json()
+                full_name = profile.get("fullName") or f"{profile.get('firstName', '')} {profile.get('lastName', '')}".strip() or user_info.get("fullName") or "Quant Researcher"
+                user_info["id"] = profile.get("id") or user_info.get("id") or "BRAIN_USER"
+                user_info["fullName"] = full_name
+                user_info["level"] = profile.get("level") or user_info.get("level") or "CONSULTANT"
+                user_info["email"] = profile.get("email") or user_info.get("email")
+        except Exception as u_err:
+            print(f"[!] Warning fetching live profile: {u_err}")
 
-        # 2. Submission Streak calculation
-        dates = set()
-        for a in active_alphas:
-            d_str = a.get("dateSubmitted") or a.get("dateCreated")
-            if d_str:
-                dates.add(d_str[:10])
-        sorted_dates = sorted(list(dates), reverse=True)
+        # 2. Active submissions count from BRAIN API
+        active_count = 0
+        active_alphas = []
+        try:
+            r_alphas = client._request_with_retry(
+                "GET",
+                f"{client.config.api_base}/users/self/alphas",
+                params={"status": "ACTIVE", "limit": 100, "order": "-dateSubmitted"}
+            )
+            if r_alphas.status_code == 200:
+                a_json = r_alphas.json()
+                active_count = a_json.get("count", len(a_json.get("results", [])))
+                active_alphas = a_json.get("results", [])
+        except Exception as a_err:
+            print(f"[!] Warning fetching active alphas: {a_err}")
 
-        today = datetime.date.today()
-        streak = 0
-        check_date = today
-        if sorted_dates and sorted_dates[0] < str(today):
-            yesterday = today - datetime.timedelta(days=1)
-            if sorted_dates[0] == str(yesterday):
-                check_date = yesterday
-        for d in sorted_dates:
-            if d == str(check_date):
-                streak += 1
-                check_date = check_date - datetime.timedelta(days=1)
-            else:
-                break
-        streak_days = max(streak, 6) # Confirmed minimum 6 days streak
+        # 3. Live Submission Streak from official BRAIN /users/self/streak
+        streak_days = 0
+        try:
+            r_streak = client._request_with_retry("GET", f"{client.config.api_base}/users/self/streak")
+            if r_streak.status_code == 200:
+                st_json = r_streak.json()
+                streak_days = st_json.get("active", 0)
+        except Exception as s_err:
+            print(f"[!] Warning fetching streak API: {s_err}")
 
-        # 3. Active Enrolled Competitions
-        r_comp = client._request_with_retry("GET", f"{client.config.api_base}/competitions")
-        comps = r_comp.json().get("results", []) if r_comp.status_code == 200 else []
-        accepted_comp = next((c for c in comps if c.get("status") == "ACCEPTED"), None)
-        comp_data = {
-            "name": accepted_comp.get("name") if accepted_comp else "Global Quant Challenge",
-            "id": accepted_comp.get("id") if accepted_comp else "global_challenge",
-            "status": accepted_comp.get("status") if accepted_comp else "ACCEPTED"
-        }
+        # Fallback streak calculation from active_alphas dates if needed
+        if streak_days == 0 and active_alphas:
+            dates = set()
+            for a in active_alphas:
+                d_str = a.get("dateSubmitted") or a.get("dateCreated")
+                if d_str:
+                    dates.add(d_str[:10])
+            sorted_dates = sorted(list(dates), reverse=True)
+            today = date.today()
+            calc_streak = 0
+            check_date = today
+            if sorted_dates and sorted_dates[0] < str(today):
+                yesterday = today - timedelta(days=1)
+                if sorted_dates[0] == str(yesterday):
+                    check_date = yesterday
+            for d in sorted_dates:
+                if d == str(check_date):
+                    calc_streak += 1
+                    check_date = check_date - timedelta(days=1)
+                else:
+                    break
+            streak_days = calc_streak
+
+        # 4. Live Competitions from BRAIN API
+        comp_data = None
+        try:
+            r_comp = client._request_with_retry("GET", f"{client.config.api_base}/users/self/competitions")
+            comps = r_comp.json().get("results", []) if r_comp.status_code == 200 else []
+            accepted_comp = next((c for c in comps if c.get("status") in ("ACCEPTED", "ACTIVE")), None)
+            if not accepted_comp:
+                r_all = client._request_with_retry("GET", f"{client.config.api_base}/competitions")
+                if r_all.status_code == 200:
+                    all_comps = r_all.json().get("results", [])
+                    accepted_comp = next((c for c in all_comps if c.get("status") in ("ACCEPTED", "ACTIVE")), None)
+            if accepted_comp:
+                comp_data = {
+                    "name": accepted_comp.get("name", "Active Competition"),
+                    "id": accepted_comp.get("id", "challenge"),
+                    "status": accepted_comp.get("status", "ACCEPTED")
+                }
+        except Exception as c_err:
+            print(f"[!] Warning fetching competitions: {c_err}")
+
+        # 5. Live Achievements & Verified Milestones from BRAIN API
+        achievements = []
+        try:
+            r_ach = client._request_with_retry("GET", f"{client.config.api_base}/users/self/achievements")
+            if r_ach.status_code == 200:
+                ach_json = r_ach.json()
+                if isinstance(ach_json, list):
+                    achievements = ach_json
+        except Exception as ach_err:
+            print(f"[!] Warning fetching achievements: {ach_err}")
 
         return {
             "user": user_info,
             "active_count": active_count,
             "streak_days": streak_days,
             "competition": comp_data,
+            "achievements": achievements,
             "engine": sess.get("engine", "algorithmic"),
             "ollama_model": sess.get("ollama_model", "deepseek-r1:latest"),
             "cloud_provider": sess.get("cloud_provider", "gemini")
@@ -806,12 +872,12 @@ class SimulationRequest(BaseModel):
     decay: int = 22
     neutralization: str = "NONE"
 
-def run_simulation_task(task_id: str, req: SimulationRequest):
+def run_simulation_task(task_id: str, req: SimulationRequest, sess: Optional[Dict[str, Any]] = None):
     SIMULATION_TASKS[task_id]["status"] = "SIMULATING"
     SIMULATION_TASKS[task_id]["logs"].append("[*] Authenticating and compiling FastExpr with WorldQuant BRAIN...")
     try:
         cfg = PipelineConfig()
-        client = BrainClient(cfg)
+        client = (sess.get("client") if sess else None) or BrainClient(cfg)
         db = AlphaDatabase(DB_PATH)
 
         spec = {
@@ -833,7 +899,15 @@ def run_simulation_task(task_id: str, req: SimulationRequest):
             "regular": req.expr
         }
 
-        cand = {"name": req.name, "expr": req.expr}
+        cand = {
+            "name": req.name,
+            "expr": req.expr,
+            "region": req.region,
+            "universe": req.universe,
+            "delay": req.delay,
+            "decay": req.decay,
+            "neutralization": req.neutralization
+        }
         res = client.simulate_candidate(cand)
         if not res or "id" not in res:
             SIMULATION_TASKS[task_id]["status"] = "FAILED"
@@ -856,14 +930,15 @@ def run_simulation_task(task_id: str, req: SimulationRequest):
         SIMULATION_TASKS[task_id]["logs"].append(f"[!] Error: {str(e)}")
 
 @app.post("/api/simulate")
-async def dispatch_simulation(req: SimulationRequest, background_tasks: BackgroundTasks):
+async def dispatch_simulation(req: SimulationRequest, background_tasks: BackgroundTasks, request: Request):
+    sess = get_current_session(request)
     task_id = str(uuid.uuid4())
     SIMULATION_TASKS[task_id] = {
         "status": "QUEUED",
         "logs": [f"[*] Task queued for candidate: {req.name}"],
         "alpha_id": None
     }
-    background_tasks.add_task(run_simulation_task, task_id, req)
+    background_tasks.add_task(run_simulation_task, task_id, req, sess)
     return {"task_id": task_id, "status": "QUEUED"}
 
 @app.get("/api/simulate/status/{task_id}")
@@ -872,6 +947,81 @@ async def get_simulation_status(task_id: str):
     if not task:
         return JSONResponse(status_code=404, content={"error": "Task not found"})
     return task
+
+# ==============================================================================
+# Closed-Loop Studio Evolution Endpoints (Sim 1 -> Sim X)
+# ==============================================================================
+
+class StudioEvolveRequest(BaseModel):
+    name: str = "Studio_Evolution_Alpha"
+    expr: str
+    region: str = "USA"
+    universe: str = "TOP3000"
+    delay: int = 1
+    decay: int = 12
+    neutralization: str = "SUBINDUSTRY"
+    max_iterations: int = 5
+    target_sharpe: float = 1.25
+
+@app.post("/api/studio/evolve")
+async def start_studio_evolve(req: StudioEvolveRequest, request: Request):
+    sess = get_current_session(request)
+    client = sess.get("client")
+    if not client:
+        return JSONResponse(status_code=401, content={"error": "Not authenticated. Please login."})
+    
+    db = DB_INSTANCE or AlphaDatabase(DB_PATH)
+    candidate = {
+        "name": req.name,
+        "expr": req.expr,
+        "region": req.region,
+        "universe": req.universe,
+        "delay": req.delay,
+        "decay": req.decay,
+        "neutralization": req.neutralization
+    }
+    session_id = ClosedLoopStudioOptimizer.start_session(
+        initial_candidate=candidate,
+        client=client,
+        db=db,
+        max_iterations=req.max_iterations,
+        target_sharpe=req.target_sharpe
+    )
+    return {"session_id": session_id, "status": "RUNNING"}
+
+@app.get("/api/studio/evolve/status/{session_id}")
+async def get_studio_evolve_status(session_id: str):
+    session = ClosedLoopStudioOptimizer.get_session(session_id)
+    if not session:
+        return JSONResponse(status_code=404, content={"error": "Evolution session not found"})
+    return session
+
+@app.post("/api/studio/evolve/stop/{session_id}")
+async def stop_studio_evolve(session_id: str):
+    success = ClosedLoopStudioOptimizer.stop_session(session_id)
+    return {"session_id": session_id, "stopped": success}
+
+@app.post("/api/studio/evolve/submit/{session_id}")
+async def submit_studio_evolved_alpha(session_id: str, request: Request):
+    sess = get_current_session(request)
+    client = sess.get("client")
+    if not client:
+        return JSONResponse(status_code=401, content={"error": "Not authenticated. Please login."})
+    
+    session = ClosedLoopStudioOptimizer.get_session(session_id)
+    if not session:
+        return JSONResponse(status_code=404, content={"error": "Evolution session not found"})
+    
+    alpha_id = session.get("submittable_alpha_id")
+    if not alpha_id:
+        return JSONResponse(status_code=400, content={"error": "Session has not produced a submittable alpha yet."})
+    
+    try:
+        res = client.submit_alpha(alpha_id)
+        return {"success": True, "alpha_id": alpha_id, "result": res}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 
 @app.get("/api/export-csv")
 async def export_csv(tier: Optional[str] = None, submittable_only: bool = False, today_only: bool = False, date: Optional[str] = None):
@@ -928,4 +1078,4 @@ if __name__ == "__main__":
     import uvicorn
     host = os.environ.get("HOST", "127.0.0.1")
     port = int(os.environ.get("PORT", 8080))
-    uvicorn.run("web.server:app", host=host, port=port, reload=True)
+    uvicorn.run("web.server:app", host=host, port=port, reload=False)

@@ -212,9 +212,9 @@
 
                 <!-- User Profile & Level -->
                 <div class="user-pill">
-                    <span id="user-full-name" style="font-weight: 700; color: var(--text-primary);">Quant Researcher</span>
+                    <span id="user-full-name" style="font-weight: 700; color: var(--text-primary);">Loading...</span>
                     <span id="user-brain-id" style="color: var(--text-muted); font-family: monospace;">--</span>
-                    <span id="user-level-badge" class="level-badge-gold">BRAIN CONSULTANT</span>
+                    <span id="user-level-badge" class="level-badge-gold">-- LEVEL</span>
                 </div>
 
                 <!-- Logout -->
@@ -308,12 +308,12 @@
             <div class="glass-card kpi-card" style="--card-accent: #f59e0b;">
                 <div class="kpi-title">
                     <span>WorldQuant Level</span>
-                    <span style="color: #f59e0b; font-size: 0.75rem;">Consultant Track</span>
+                    <span id="stat-level-track" style="color: #f59e0b; font-size: 0.75rem;">Verified Level</span>
                 </div>
                 <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.25rem;">
-                    <div id="stat-level" style="font-size: 2.2rem; font-weight: 800; color: #fbbf24;">GOLD</div>
+                    <div id="stat-level" style="font-size: 2.2rem; font-weight: 800; color: #fbbf24;">--</div>
                 </div>
-                <div class="kpi-sub" style="margin-top: 0.5rem;">Senior Consultant Eligibility Unlocked</div>
+                <div id="stat-level-sub" class="kpi-sub" style="margin-top: 0.5rem;">Connecting to WorldQuant BRAIN API...</div>
             </div>
 
             <!-- KPI 2: Active Portfolio -->
@@ -323,7 +323,7 @@
                     <span style="color: #10b981; font-size: 0.75rem;">Live Generating Returns</span>
                 </div>
                 <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.25rem;">
-                    <div id="stat-active-count" style="font-size: 2.2rem; font-weight: 800; color: #34d399;">15</div>
+                    <div id="stat-active-count" style="font-size: 2.2rem; font-weight: 800; color: #34d399;">--</div>
                     <span style="font-size: 0.85rem; color: var(--text-muted);">Alphas Running</span>
                 </div>
                 <div class="kpi-sub" style="margin-top: 0.5rem;">Accepted by WorldQuant BRAIN Risk Desk</div>
@@ -336,10 +336,10 @@
                     <span style="color: #ef4444; font-size: 0.75rem;">Daily Consistency</span>
                 </div>
                 <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.25rem;">
-                    <div id="stat-streak-days" style="font-size: 2.2rem; font-weight: 800; color: #f87171;">6</div>
+                    <div id="stat-streak-days" style="font-size: 2.2rem; font-weight: 800; color: #f87171;">--</div>
                     <span style="font-size: 0.85rem; color: var(--text-muted);">Consecutive Days</span>
                 </div>
-                <div class="kpi-sub" style="margin-top: 0.5rem;">Active streak maintained across USA/EUR/ASI</div>
+                <div class="kpi-sub" style="margin-top: 0.5rem;">Verified consecutive active days from BRAIN API</div>
             </div>
 
             <!-- KPI 4: Active Competitions -->
@@ -350,12 +350,12 @@
                 </div>
                 <div style="margin-top: 0.25rem;">
                     <div id="stat-comp-name" style="font-size: 1.35rem; font-weight: 800; color: #38bdf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        Global Quant Challenge
+                        --
                     </div>
                 </div>
                 <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                    <span id="stat-comp-status" style="font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 4px; background: rgba(16, 185, 129, 0.2); color: #34d399;">
-                        ACCEPTED &amp; ENROLLED
+                    <span id="stat-comp-status" style="font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 4px; background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
+                        CHECKING ENROLLMENT
                     </span>
                 </div>
             </div>
@@ -373,67 +373,13 @@
                     </p>
                 </div>
                 <span id="achievements-count-badge" style="font-size: 0.75rem; font-weight: 700; color: var(--accent-cyan); background: rgba(6, 182, 212, 0.12); border: 1px solid rgba(6, 182, 212, 0.25); padding: 0.3rem 0.65rem; border-radius: 6px;">
-                    7 of 10 Milestones Unlocked
+                    -- Milestones Unlocked
                 </span>
             </div>
 
             <div id="achievements-rack" class="achievement-rack">
-                <!-- Dynamically populated -->
-                <div class="achievement-card">
-                    <div class="achievement-icon icon-unlocked">🌟</div>
-                    <div>
-                        <div style="font-weight: 700; font-size: 0.85rem;">Spectacular Alpha</div>
-                        <div style="font-size: 0.725rem; color: var(--text-muted);">Made an alpha with Spectacular performance</div>
-                    </div>
-                </div>
-                <div class="achievement-card">
-                    <div class="achievement-icon icon-unlocked">🏅</div>
-                    <div>
-                        <div style="font-weight: 700; font-size: 0.85rem;">Excellent Alpha</div>
-                        <div style="font-size: 0.725rem; color: var(--text-muted);">Made an alpha with Excellent performance</div>
-                    </div>
-                </div>
-                <div class="achievement-card">
-                    <div class="achievement-icon icon-unlocked">⚡</div>
-                    <div>
-                        <div style="font-weight: 700; font-size: 0.85rem;">100 Simulations</div>
-                        <div style="font-size: 0.725rem; color: var(--text-muted);">Ran 100 simulations on BRAIN</div>
-                    </div>
-                </div>
-                <div class="achievement-card">
-                    <div class="achievement-icon icon-unlocked">🎯</div>
-                    <div>
-                        <div style="font-weight: 700; font-size: 0.85rem;">10 Submissions</div>
-                        <div style="font-size: 0.725rem; color: var(--text-muted);">Submitted 10 alphas into live portfolio</div>
-                    </div>
-                </div>
-                <div class="achievement-card">
-                    <div class="achievement-icon icon-unlocked">🎖️</div>
-                    <div>
-                        <div style="font-weight: 700; font-size: 0.85rem;">Good Alpha</div>
-                        <div style="font-size: 0.725rem; color: var(--text-muted);">Made an alpha with Good performance</div>
-                    </div>
-                </div>
-                <div class="achievement-card">
-                    <div class="achievement-icon icon-unlocked">🚀</div>
-                    <div>
-                        <div style="font-weight: 700; font-size: 0.85rem;">20 Simulations</div>
-                        <div style="font-size: 0.725rem; color: var(--text-muted);">Ran 20 simulations on BRAIN</div>
-                    </div>
-                </div>
-                <div class="achievement-card">
-                    <div class="achievement-icon icon-unlocked">⭐</div>
-                    <div>
-                        <div style="font-weight: 700; font-size: 0.85rem;">First Submission</div>
-                        <div style="font-size: 0.725rem; color: var(--text-muted);">Submitted your first quantitative alpha</div>
-                    </div>
-                </div>
-                <div class="achievement-card" style="opacity: 0.6;">
-                    <div class="achievement-icon icon-locked">🔒</div>
-                    <div>
-                        <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-secondary);">SuperAlpha Consultant</div>
-                        <div style="font-size: 0.725rem; color: var(--text-muted);">Next milestone: SuperAlpha access</div>
-                    </div>
+                <div style="color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem; text-align: center; width: 100%;">
+                    Fetching verified achievements from WorldQuant BRAIN API...
                 </div>
             </div>
         </section>
@@ -470,10 +416,15 @@
                 const data = await res.json();
 
                 if (data.user) {
-                    document.getElementById('user-full-name').textContent = data.user.fullName || 'User';
+                    document.getElementById('user-full-name').textContent = data.user.fullName || 'Quant Researcher';
                     document.getElementById('user-brain-id').textContent = data.user.id || '';
-                    document.getElementById('user-level-badge').textContent = `${data.user.level || 'GOLD'} LEVEL`;
-                    document.getElementById('stat-level').textContent = data.user.level || 'GOLD';
+                    const level = data.user.level || 'CONSULTANT';
+                    document.getElementById('user-level-badge').textContent = `${level} LEVEL`;
+                    document.getElementById('stat-level').textContent = level;
+                    const levelSub = document.getElementById('stat-level-sub');
+                    if (levelSub) {
+                        levelSub.textContent = (level === 'GOLD') ? 'Senior Consultant Eligibility Unlocked' : `${level} Track on WorldQuant BRAIN`;
+                    }
                 }
 
                 if (data.active_count !== undefined) {
@@ -485,8 +436,18 @@
                 }
 
                 if (data.competition) {
-                    document.getElementById('stat-comp-name').textContent = data.competition.name || 'Global Quant Challenge';
-                    document.getElementById('stat-comp-status').textContent = (data.competition.status || 'ACCEPTED') + ' & ENROLLED';
+                    document.getElementById('stat-comp-name').textContent = data.competition.name || 'Active Challenge';
+                    const statusText = (data.competition.status || 'ACCEPTED').toUpperCase() + ' & ENROLLED';
+                    const compStatusEl = document.getElementById('stat-comp-status');
+                    compStatusEl.textContent = statusText;
+                    compStatusEl.style.background = 'rgba(16, 185, 129, 0.2)';
+                    compStatusEl.style.color = '#34d399';
+                } else {
+                    document.getElementById('stat-comp-name').textContent = 'Open Quant Track';
+                    const compStatusEl = document.getElementById('stat-comp-status');
+                    compStatusEl.textContent = 'GENERAL PORTFOLIO';
+                    compStatusEl.style.background = 'rgba(56, 189, 248, 0.15)';
+                    compStatusEl.style.color = '#38bdf8';
                 }
 
                 if (data.engine) {
@@ -495,9 +456,78 @@
                     else if (data.engine === 'cloud_ai') engineLabel.textContent = `Cloud AI (${data.cloud_provider || 'Gemini'})`;
                     else engineLabel.textContent = 'Algorithmic Engine';
                 }
+
+                // Dynamically render verified achievements from WorldQuant API
+                if (data.achievements && Array.isArray(data.achievements) && data.achievements.length > 0) {
+                    renderAchievements(data.achievements);
+                } else {
+                    const rack = document.getElementById('achievements-rack');
+                    if (rack) {
+                        rack.innerHTML = `<div style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem;">No achievements reported by WorldQuant BRAIN.</div>`;
+                    }
+                }
             } catch (e) {
                 console.error('Failed to load dashboard summary:', e);
             }
+        }
+
+        function renderAchievements(achievements) {
+            const rack = document.getElementById('achievements-rack');
+            const countBadge = document.getElementById('achievements-count-badge');
+            if (!rack) return;
+
+            const unlocked = achievements.filter(a => a.achieved !== null && a.achieved !== undefined);
+            if (countBadge) {
+                countBadge.textContent = `${unlocked.length} of ${achievements.length} Milestones Unlocked`;
+            }
+
+            const iconMap = {
+                'SIMULATION_20': '🚀',
+                'SIMULATION_100': '⚡',
+                'SUBMIT_1': '⭐',
+                'SUBMIT_10': '🎯',
+                'ALPHA_PERF_GOOD': '🎖️',
+                'ALPHA_PERF_EXCELLENT': '🏅',
+                'ALPHA_PERF_SPECTACULAR': '🌟',
+                'SUPER_ALPHA': '👑',
+                'CONSULTANT_SUBMIT': '💼',
+                'TUTORIAL': '📚',
+                'CONSULTANT_TUTORIAL': '🎓',
+                'OSMOSIS_PIONEER': '🌐',
+                'PYTHON_ALPHA_SUBMIT': '🐍',
+                'SUBMIT_SPC': '💡'
+            };
+
+            let html = '';
+            achievements.forEach(a => {
+                const isUnlocked = a.achieved !== null && a.achieved !== undefined;
+                const icon = iconMap[a.id] || (isUnlocked ? '🏆' : '🔒');
+                const iconClass = isUnlocked ? 'icon-unlocked' : 'icon-locked';
+                const cardStyle = isUnlocked ? '' : 'opacity: 0.6;';
+                const achievedDate = isUnlocked ? new Date(a.achieved).toLocaleDateString() : 'Locked';
+
+                html += `
+                    <div class="achievement-card" style="${cardStyle}" title="${escapeHtml(a.description || a.name)} (${achievedDate})">
+                        <div class="achievement-icon ${iconClass}">${icon}</div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 0.85rem; color: ${isUnlocked ? 'var(--text-primary)' : 'var(--text-secondary)'};">
+                                ${escapeHtml(a.name)}
+                            </div>
+                            <div style="font-size: 0.725rem; color: var(--text-muted);">
+                                ${escapeHtml(a.description || '')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            rack.innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         async function triggerDailyBatch() {

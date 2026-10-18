@@ -1,26 +1,26 @@
 [
   {
-    "name": "Template - Capital Efficiency & Multi-Horizon Reversion",
-    "expr": "oi_mom = rank(ts_delta(ts_backfill(operating_income, 120), 120) / cap);\ncf_yield = rank(ts_backfill(cashflow_op, 120) / cap);\nasset_turn = rank(ts_backfill(sales, 120) / (ts_backfill(assets, 120) + 1));\nfund = power(rank(0.40 * oi_mom + 0.35 * cf_yield + 0.25 * asset_turn), 2.2);\nrev = power(0.70 * rank(-(close - ts_mean(vwap, 2)) / ts_mean(vwap, 2)) + 0.30 * rank(-returns), 2.2);\ngroup_neutralize(fund * rev, subindustry)",
-    "decay": 16,
+    "name": "Educational - Dual-Horizon Trend & Mean Reversion",
+    "expr": "fast_trend = rank(ts_mean(close, 5) - ts_mean(close, 20));\nreversal = rank(-returns);\ngroup_neutralize(0.60 * fast_trend + 0.40 * reversal, subindustry)",
+    "decay": 12,
+    "delay": 1,
+    "universe": "TOP3000",
+    "region": "USA",
+    "neutralization": "NONE"
+  },
+  {
+    "name": "Educational - Volume Flow & Intraday Pressure",
+    "expr": "flow = rank(volume / (adv20 + 1));\npressure = rank(-(close - open) / (high - low + 0.001));\ngroup_neutralize(0.50 * flow + 0.50 * pressure, subindustry)",
+    "decay": 10,
     "delay": 1,
     "universe": "TOP1000",
     "region": "USA",
     "neutralization": "NONE"
   },
   {
-    "name": "Template - Large-Cap Solvency & Cash Return on Assets",
-    "expr": "debt_cov = rank(ts_backfill(operating_income, 120) / (ts_backfill(debt, 120) + 1));\ncf_assets = rank(ts_backfill(cashflow_op, 120) / (ts_backfill(assets, 120) + 1));\neps_mom = rank(ts_delta(ts_backfill(anl4_afv4_eps_mean, 60), 60));\nfund = power(rank(0.40 * debt_cov + 0.35 * cf_assets + 0.25 * eps_mom), 2.0);\nrev = power(rank(-(close - ts_mean(vwap, 2)) / ts_mean(vwap, 2)), 2.0);\ngroup_neutralize(fund * rev, subindustry)",
+    "name": "Educational - High-Low Range Mean Reversion",
+    "expr": "range_pos = (close - ts_min(low, 10)) / (ts_max(high, 10) - ts_min(low, 10) + 0.001);\ngroup_neutralize(rank(-range_pos), subindustry)",
     "decay": 14,
-    "delay": 1,
-    "universe": "TOP500",
-    "region": "USA",
-    "neutralization": "NONE"
-  },
-  {
-    "name": "Template - Broad Market Analyst Revision & Short-Term Reversal",
-    "expr": "eps_rev = rank(ts_delta(ts_backfill(anl4_afv4_eps_mean, 60), 60));\ncf_yield = rank(ts_backfill(cashflow_op, 120) / cap);\nsignal = power(rank(0.50 * eps_rev + 0.50 * cf_yield), 2.2);\nrev = power(0.60 * rank(-ts_delta(close, 3)) + 0.40 * rank(-ts_delta(close, 7)), 2.2);\ngroup_neutralize(signal * rev, subindustry)",
-    "decay": 15,
     "delay": 1,
     "universe": "TOP3000",
     "region": "USA",
