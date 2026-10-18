@@ -5,7 +5,7 @@
 
 let allAlphas = [];
 let currentFilter = 'all';
-let currentTimeframe = 'today'; // Default to Today mode: only displays today's alphas & simulations
+let currentTimeframe = 'all'; // Default to 'all' so new users see all portfolio alphas immediately
 let currentSearch = '';
 let currentSort = { col: 'fitness', order: 'desc' };
 
@@ -65,7 +65,7 @@ window.setTimeframeFilter = function(timeframe) {
             badgeAll.style.background = 'rgba(255, 255, 255, 0.06)';
             badgeAll.style.color = 'var(--text-muted)';
         }
-        if (caption) caption.textContent = "Showing alphas submitted & simulations dispatched today only (2026-10-16).";
+        if (caption) caption.textContent = `Showing alphas submitted & simulations dispatched today only (${new Date().toLocaleDateString()}).`;
     } else {
         if (btnAll) {
             btnAll.classList.add('active');
@@ -1135,79 +1135,65 @@ function insertFieldToStudio(fieldId) {
 
 // --- Alpha Studio & Live Simulator ---
 const STRATEGY_TEMPLATES = {
-    "Spectacular Capital Efficiency Power 2.8": {
+    "Dual-Horizon Trend & Mean Reversion": {
         delay: 1,
-        decay: 22,
+        decay: 14,
         universe: "TOP3000",
-        code: `oi_mom = rank(ts_delta(ts_backfill(operating_income, 120), 120) / cap);
-own_hist = rank(ts_rank(ts_backfill(ebitda, 120) / (ts_backfill(enterprise_value, 120) + 1), 250));
-eps_mom = rank(ts_delta(ts_backfill(anl4_afv4_eps_mean, 60), 60));
-cf_yield = rank(ts_backfill(cashflow_op, 120) / cap);
-asset_turn = rank(ts_backfill(sales, 120) / (ts_backfill(assets, 120) + 1));
-fund = power(rank(0.25 * oi_mom + 0.15 * own_hist + 0.20 * eps_mom + 0.15 * cf_yield + 0.25 * asset_turn), 2.8);
-rev = power(0.70 * rank(-(close - ts_mean(vwap, 2)) / ts_mean(vwap, 2)) + 0.30 * rank(-returns), 2.8);
-group_neutralize(fund * rev, subindustry)`
+        code: `# Educational Template: Dual-Horizon Trend & Mean Reversion
+fast_trend = rank(ts_mean(close, 5) - ts_mean(close, 20));
+reversal = rank(-returns);
+group_neutralize(0.60 * fast_trend + 0.40 * reversal, subindustry)`
     },
 
-    "Excellent Operational Cashflow Power 2.2": {
+    "Volume Flow Imbalance & Intraday Pressure": {
         delay: 1,
-        decay: 20,
+        decay: 12,
         universe: "TOP1000",
-        code: `oi_mom = rank(ts_delta(ts_backfill(operating_income, 120), 120) / cap);
-own_hist = rank(ts_rank(ts_backfill(ebitda, 120) / (ts_backfill(enterprise_value, 120) + 1), 250));
-eps_mom = rank(ts_delta(ts_backfill(anl4_afv4_eps_mean, 60), 60));
-cf_yield = rank(ts_backfill(cashflow_op, 120) / cap);
-fund = power(rank(0.35 * oi_mom + 0.15 * own_hist + 0.35 * eps_mom + 0.15 * cf_yield), 2.2);
-rev = power(0.70 * rank(-(close - ts_mean(vwap, 2)) / ts_mean(vwap, 2)) + 0.30 * rank(-returns), 2.2);
-group_neutralize(fund * rev, subindustry)`
+        code: `# Educational Template: Volume Flow Imbalance & Intraday Pressure
+flow = rank(volume / (adv20 + 1));
+pressure = rank(-(close - open) / (high - low + 0.001));
+group_neutralize(0.50 * flow + 0.50 * pressure, subindustry)`
     },
 
-    "Delay 0 Earnings PEAD Neutralized Held": {
+    "High-Low Range Multi-Scale Mean Reversion": {
+        delay: 1,
+        decay: 16,
+        universe: "TOP3000",
+        code: `# Educational Template: High-Low Range Multi-Scale Reversion
+range_pos = (close - ts_min(low, 10)) / (ts_max(high, 10) - ts_min(low, 10) + 0.001);
+reversal = power(rank(-range_pos), 2.2);
+group_neutralize(reversal, subindustry)`
+    },
+
+    "Multi-Scale Volatility Compression": {
+        delay: 1,
+        decay: 15,
+        universe: "TOP3000",
+        code: `# Educational Template: Volatility Compression & Breakout
+vol_ratio = ts_std_dev(returns, 10) / (ts_std_dev(returns, 60) + 0.001);
+momentum = rank(ts_delta(close, 5));
+group_neutralize(rank(-vol_ratio) * momentum, subindustry)`
+    },
+
+    "Operating Cash Flow Yield & VWAP Reversion": {
+        delay: 1,
+        decay: 18,
+        universe: "TOP1000",
+        code: `# Educational Template: Cash Flow Yield & VWAP Reversion
+cf_yield = rank(ts_backfill(cashflow_op, 120) / cap);
+rev = rank(-(close - ts_mean(vwap, 3)) / (ts_mean(vwap, 3) + 0.001));
+group_neutralize(0.55 * cf_yield + 0.45 * rev, subindustry)`
+    },
+
+    "Delay 0 Earnings PEAD Neutralized": {
         delay: 0,
         decay: 10,
         universe: "TOP3000",
-        code: `earn_tone = vec_avg(nws18_bee);
+        code: `# Educational Template: Delay 0 Earnings Announcement PEAD
+earn_tone = vec_avg(nws18_bee);
 event = abs(earn_tone) > 0;
 held_tone = trade_when(event, earn_tone, -1);
 group_neutralize(held_tone, subindustry)`
-    },
-
-    "Delay 0 Share Buyback Authorization Flow": {
-        delay: 0,
-        decay: 15,
-        universe: "TOP3000",
-        code: `event = ts_backfill(fn_payments_for_repurchase_of_common_stock_q, 60) > 0;
-buyback_yield = rank(ts_backfill(fn_payments_for_repurchase_of_common_stock_q, 60) / cap);
-cf_yield = rank(ts_backfill(cashflow_op, 120) / cap);
-fund = power(rank(0.50 * buyback_yield + 0.50 * cf_yield), 2.2);
-intra_rev = power(0.70 * rank(-(close - open) / open) + 0.30 * rank(-returns), 2.2);
-signal = group_neutralize(fund * intra_rev, subindustry);
-trade_when(event, signal, -1)`
-    },
-
-    "Orthogonal Alternative Data Network": {
-        delay: 1,
-        decay: 22,
-        universe: "TOP3000",
-        code: `network = rank(pv13_com_page_rank);
-social_panic = rank(-ts_mean(snt_social_value, 5));
-news_tone = rank(ts_mean(mean_earnings_evaluation_sentiment, 5));
-eps_rev = rank(ts_delta(ts_backfill(anl4_afv4_eps_mean, 60), 60));
-asset_turn = rank(ts_backfill(sales, 120) / (ts_backfill(assets, 120) + 1));
-alt_engine = power(rank(0.25 * asset_turn + 0.25 * eps_rev + 0.20 * network + 0.15 * social_panic + 0.15 * news_tone), 2.5);
-rev = power(0.70 * rank(-(close - ts_mean(vwap, 2)) / ts_mean(vwap, 2)) + 0.30 * rank(-returns), 2.5);
-group_neutralize(alt_engine * rev, subindustry)`
-    },
-
-    "Revenue Growth & Gross Margin Expansion": {
-        delay: 1,
-        decay: 22,
-        universe: "TOP3000",
-        code: `rev_mom = rank(ts_delta(ts_backfill(sales, 120), 120) / cap);
-gm_exp = rank(ts_delta(ts_backfill(sales - cogs, 120) / (ts_backfill(sales, 120) + 1), 120));
-fund = power(rank(0.50 * rev_mom + 0.50 * gm_exp), 2.5);
-rev = power(0.70 * rank(-(close - ts_mean(vwap, 2)) / ts_mean(vwap, 2)) + 0.30 * rank(-returns), 2.5);
-group_neutralize(fund * rev, subindustry)`
     }
 };
 
@@ -1304,6 +1290,8 @@ function initStudio() {
             }
         });
     }
+
+    initStudioEvolution();
 }
 
 async function pollSimulationTask(taskId) {
@@ -1322,7 +1310,7 @@ async function pollSimulationTask(taskId) {
             if (data.status === 'COMPLETE' || data.status === 'FAILED' || data.status === 'ERROR') {
                 clearInterval(interval);
                 btn.disabled = false;
-                btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Run Simulation &amp; Platform Audit`;
+                btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Run Single Simulation`;
 
                 if (data.status === 'COMPLETE') {
                     terminal.textContent += `\n[OK] SIMULATION SUCCESSFUL! Alpha ID: ${data.alpha_id}\n`;
@@ -1344,7 +1332,7 @@ async function pollSimulationTask(taskId) {
         } catch (e) {
             clearInterval(interval);
             btn.disabled = false;
-            btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Run Simulation &amp; Platform Audit`;
+            btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Run Single Simulation`;
             if (statusPill) {
                 statusPill.textContent = '● Ready';
                 statusPill.style.color = '#34d399';
@@ -1353,6 +1341,338 @@ async function pollSimulationTask(taskId) {
         }
     }, 2500);
 }
+
+// ==============================================================================
+// Closed-Loop Studio Evolution Controller (Sim 1 -> Sim X)
+// ==============================================================================
+let currentEvolutionSessionId = null;
+let evolutionPollTimer = null;
+
+function initStudioEvolution() {
+    const evolveBtn = document.getElementById('btn-studio-evolve');
+    const stopBtn = document.getElementById('btn-stop-evolution');
+
+    if (evolveBtn) {
+        evolveBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            startStudioEvolution();
+        });
+    }
+
+    if (stopBtn) {
+        stopBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (currentEvolutionSessionId) {
+                try {
+                    await fetch(`/api/studio/evolve/stop/${currentEvolutionSessionId}`, { method: 'POST' });
+                    stopBtn.textContent = 'Stopping...';
+                } catch (err) {
+                    console.error('Failed to stop evolution:', err);
+                }
+            }
+        });
+    }
+}
+
+async function startStudioEvolution() {
+    const evolveBtn = document.getElementById('btn-studio-evolve');
+    const container = document.getElementById('studio-evolution-container');
+    const statusBadge = document.getElementById('evo-status-badge');
+    const sessionBadge = document.getElementById('evo-session-badge');
+    const track = document.getElementById('evo-steps-track');
+    const terminal = document.getElementById('studio-terminal');
+
+    const payload = {
+        name: document.getElementById('studio-alpha-name').value || "Studio_Evolve_Alpha",
+        expr: document.getElementById('studio-code').value,
+        region: document.getElementById('studio-region').value,
+        universe: document.getElementById('studio-universe').value,
+        delay: parseInt(document.getElementById('studio-delay').value),
+        decay: parseInt(document.getElementById('studio-decay').value),
+        neutralization: document.getElementById('studio-neutralization').value,
+        max_iterations: 5,
+        target_sharpe: 1.25
+    };
+
+    if (!payload.expr || payload.expr.trim().length === 0) {
+        alert("Please enter a FastExpr formula or select a template first.");
+        return;
+    }
+
+    evolveBtn.disabled = true;
+    evolveBtn.innerHTML = '⏳ Evolving Candidates...';
+    container.style.display = 'block';
+    container.scrollIntoView({ behavior: 'smooth' });
+
+    track.innerHTML = `
+        <div style="padding: 2.5rem; text-align: center; color: var(--text-secondary);">
+            <div class="live-dot-indicator" style="margin: 0 auto 0.75rem auto;"></div>
+            Initializing Simulation 1 on WorldQuant BRAIN and setting up closed-loop feedback monitor...
+        </div>
+    `;
+
+    if (statusBadge) {
+        statusBadge.textContent = '● Simulation 1 in-flight';
+        statusBadge.style.color = '#38bdf8';
+        statusBadge.style.background = 'rgba(56, 189, 248, 0.15)';
+    }
+
+    try {
+        const res = await fetch('/api/studio/evolve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        currentEvolutionSessionId = data.session_id;
+        if (sessionBadge) sessionBadge.textContent = `#${currentEvolutionSessionId}`;
+
+        if (terminal) {
+            terminal.textContent += `\n[*] Started Closed-Loop Evolution Session: ${currentEvolutionSessionId}\n`;
+        }
+
+        pollEvolutionSession(currentEvolutionSessionId);
+    } catch (err) {
+        alert(`Failed to launch evolution: ${err.message}`);
+        evolveBtn.disabled = false;
+        evolveBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> ⚡ Auto-Evolve to Submittable (Sim 1 ➔ Sim X)`;
+        if (statusBadge) {
+            statusBadge.textContent = '● Error';
+            statusBadge.style.color = '#f43f5e';
+            statusBadge.style.background = 'rgba(244, 63, 94, 0.15)';
+        }
+    }
+}
+
+function pollEvolutionSession(sessionId) {
+    if (evolutionPollTimer) clearInterval(evolutionPollTimer);
+
+    const evolveBtn = document.getElementById('btn-studio-evolve');
+    const stopBtn = document.getElementById('btn-stop-evolution');
+    const statusBadge = document.getElementById('evo-status-badge');
+
+    evolutionPollTimer = setInterval(async () => {
+        try {
+            const res = await fetch(`/api/studio/evolve/status/${sessionId}`);
+            if (!res.ok) return;
+            const data = await res.json();
+
+            renderEvolutionTimeline(data);
+
+            if (data.status === 'SUBMITTABLE' || data.status === 'MAX_ITERATIONS' || data.status === 'STOPPED' || data.status === 'ERROR') {
+                clearInterval(evolutionPollTimer);
+                evolveBtn.disabled = false;
+                evolveBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> ⚡ Auto-Evolve to Submittable (Sim 1 ➔ Sim X)`;
+                if (stopBtn) stopBtn.textContent = 'Stop Evolution';
+
+                if (data.status === 'SUBMITTABLE') {
+                    statusBadge.textContent = '★ SUBMITTABLE CLEARED';
+                    statusBadge.style.color = '#34d399';
+                    statusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+                    loadDashboardStats();
+                    loadAlphas();
+                } else if (data.status === 'MAX_ITERATIONS') {
+                    statusBadge.textContent = '● Max Iterations Reached';
+                    statusBadge.style.color = '#fbbf24';
+                    statusBadge.style.background = 'rgba(245, 158, 11, 0.15)';
+                } else if (data.status === 'STOPPED') {
+                    statusBadge.textContent = '● Stopped';
+                    statusBadge.style.color = '#94a3b8';
+                    statusBadge.style.background = 'rgba(148, 163, 184, 0.15)';
+                } else {
+                    statusBadge.textContent = '● Error Encountered';
+                    statusBadge.style.color = '#f43f5e';
+                    statusBadge.style.background = 'rgba(244, 63, 94, 0.15)';
+                }
+            } else {
+                statusBadge.textContent = `● Simulating Step ${data.current_step || 1}...`;
+                statusBadge.style.color = '#38bdf8';
+                statusBadge.style.background = 'rgba(56, 189, 248, 0.15)';
+            }
+        } catch (err) {
+            console.error('Error polling evolution session:', err);
+        }
+    }, 2500);
+}
+
+function renderEvolutionTimeline(data) {
+    const track = document.getElementById('evo-steps-track');
+    if (!track) return;
+
+    const steps = data.steps || [];
+    if (steps.length === 0) {
+        track.innerHTML = `
+            <div style="padding: 2.5rem; text-align: center; color: var(--text-secondary);">
+                <div class="live-dot-indicator" style="margin: 0 auto 0.75rem auto;"></div>
+                Executing Simulation 1 on WorldQuant BRAIN...
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    steps.forEach((step, idx) => {
+        const isSub = step.hurdles_passed;
+        const nodeClass = isSub ? 'submittable' : 'failed';
+        const nodeLabel = isSub ? '★' : `${step.step}`;
+        const cardClass = isSub ? 'evolution-card submittable' : 'evolution-card';
+
+        const m = step.metrics || {};
+        const sharpeVal = (m.sharpe !== undefined && m.sharpe !== null) ? m.sharpe.toFixed(2) : '-';
+        const turnoverVal = (m.turnover !== undefined && m.turnover !== null) ? `${(m.turnover * 100).toFixed(1)}%` : '-';
+        const fitnessVal = (m.fitness !== undefined && m.fitness !== null) ? m.fitness.toFixed(2) : '-';
+        const marginVal = (m.margin !== undefined && m.margin !== null) ? `${(m.margin * 10000).toFixed(0)} bps` : '-';
+        const corrVal = (m.self_corr !== undefined && m.self_corr !== null) ? m.self_corr.toFixed(2) : '-';
+
+        // Sharpe color
+        const sharpeColor = (m.sharpe >= 1.25) ? 'var(--accent-emerald)' : '#f43f5e';
+        // Turnover color
+        const turnoverColor = (m.turnover <= 0.70 && m.turnover >= 0.01) ? 'var(--accent-emerald)' : '#f43f5e';
+        // Corr color
+        const corrColor = (m.self_corr < 0.70) ? 'var(--accent-emerald)' : '#f43f5e';
+
+        let bannerHtml = '';
+        if (isSub) {
+            bannerHtml = `
+                <div class="evo-success-banner">
+                    <span>★ ALL 8 PLATFORM HURDLES PASSED! Submittable Candidate Achieved.</span>
+                    <button class="btn-primary-action" onclick="submitEvolvedAlpha('${data.session_id}')" style="width: auto; padding: 0.4rem 1rem; font-size: 0.775rem; background: #10b981; color: white;">
+                        🚀 One-Click Submit to BRAIN
+                    </button>
+                </div>
+            `;
+        } else if (step.hurdle_failures && step.hurdle_failures.length > 0) {
+            bannerHtml = `
+                <div class="evo-fail-banner">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                    <span><strong>Platform Hurdle Rejection:</strong> ${escapeHtml(step.hurdle_failures.join(' • '))}</span>
+                </div>
+            `;
+        }
+
+        let mutationHtml = '';
+        if (step.mutation_applied) {
+            mutationHtml = `
+                <div class="evo-mutation-banner">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                    <span><strong>Autonomous Feedback Mutation:</strong> ${escapeHtml(step.mutation_applied)}</span>
+                </div>
+            `;
+        }
+
+        const stepTitle = isSub ? `Simulation ${step.step}: ★ Submittable Solved` : `Simulation ${step.step}: Initial / Intermediate Feedback`;
+
+        html += `
+            <div class="evolution-step-wrapper">
+                <div class="evolution-step-node ${nodeClass}">${nodeLabel}</div>
+                <div class="${cardClass}">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <div>
+                            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                                ${stepTitle}
+                                <span style="font-size: 0.7rem; font-family: var(--font-mono); color: var(--accent-cyan); background: rgba(56, 189, 248, 0.1); padding: 0.1rem 0.4rem; border-radius: 4px;">
+                                    ${step.alpha_id}
+                                </span>
+                            </div>
+                            <div style="font-size: 0.725rem; color: var(--text-muted); margin-top: 0.15rem;">
+                                Universe: <strong>${step.universe || 'TOP3000'}</strong> • Decay: <strong>${step.decay || 12}</strong> • Neut: <strong>${step.neutralization || 'SUBINDUSTRY'}</strong>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button type="button" class="btn-sync" onclick="loadStepIntoStudio(${idx})" style="font-size: 0.7rem; padding: 0.25rem 0.6rem; cursor: pointer;">
+                                📋 Load in Editor
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="evo-metrics-grid">
+                        <div class="evo-metric-cell">
+                            <span class="evo-metric-label">Sharpe Ratio</span>
+                            <span class="evo-metric-val" style="color: ${sharpeColor};">${sharpeVal}</span>
+                        </div>
+                        <div class="evo-metric-cell">
+                            <span class="evo-metric-label">Turnover</span>
+                            <span class="evo-metric-val" style="color: ${turnoverColor};">${turnoverVal}</span>
+                        </div>
+                        <div class="evo-metric-cell">
+                            <span class="evo-metric-label">Fitness</span>
+                            <span class="evo-metric-val">${fitnessVal}</span>
+                        </div>
+                        <div class="evo-metric-cell">
+                            <span class="evo-metric-label">Margin</span>
+                            <span class="evo-metric-val">${marginVal}</span>
+                        </div>
+                        <div class="evo-metric-cell">
+                            <span class="evo-metric-label">Self-Corr</span>
+                            <span class="evo-metric-val" style="color: ${corrColor};">${corrVal}</span>
+                        </div>
+                    </div>
+
+                    ${bannerHtml}
+                    ${mutationHtml}
+
+                    <div style="margin-top: 0.4rem;">
+                        <button type="button" class="evo-code-toggle" onclick="toggleStepCode(${idx})">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            View Expression Code
+                        </button>
+                        <pre id="evo-code-box-${idx}" class="evo-code-snippet" style="display: none;">${escapeHtml(step.expr)}</pre>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    track.innerHTML = html;
+}
+
+function toggleStepCode(idx) {
+    const box = document.getElementById(`evo-code-box-${idx}`);
+    if (box) {
+        box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+    }
+}
+
+async function loadStepIntoStudio(stepIdx) {
+    if (!currentEvolutionSessionId) return;
+    try {
+        const res = await fetch(`/api/studio/evolve/status/${currentEvolutionSessionId}`);
+        const data = await res.json();
+        const step = (data.steps || [])[stepIdx];
+        if (step) {
+            document.getElementById('studio-code').value = step.expr;
+            document.getElementById('studio-decay').value = step.decay || 12;
+            document.getElementById('studio-neutralization').value = (step.neutralization || 'SUBINDUSTRY').toUpperCase();
+            document.getElementById('studio-universe').value = step.universe || 'TOP3000';
+            updateStudioCodeMeta();
+            document.getElementById('tab-studio').scrollIntoView({ behavior: 'smooth' });
+        }
+    } catch (e) {
+        console.error('Failed to load step into studio:', e);
+    }
+}
+
+async function submitEvolvedAlpha(sessionId) {
+    if (!confirm('Submit this cleared alpha to WorldQuant BRAIN?')) return;
+    try {
+        const res = await fetch(`/api/studio/evolve/submit/${sessionId}`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            alert(`🎉 Success! Alpha ${data.alpha_id} submitted to WorldQuant BRAIN!`);
+            loadDashboardStats();
+            loadAlphas();
+        } else {
+            alert(`Submission response: ${data.error || JSON.stringify(data)}`);
+        }
+    } catch (e) {
+        alert(`Submission failed: ${e.message}`);
+    }
+}
+
 
 // --- Background Correlation Worker Poller ---
 let corrWorkerTimer = null;
